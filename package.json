@@ -1,0 +1,37 @@
+{
+  "name": "toolbox-ts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "add-route": "bash ./scripts/add-route.sh",
+    "deploy": "NODE_ENV=staging bash ./scripts/deploy.sh",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "change-case": "^5.4.4",
+    "gsap": "^3.12.5",
+    "jwt-decode": "^4.0.0",
+    "lodash": "^4.17.21",
+    "normalize.css": "^8.0.1",
+    "pinia": "^2.2.0",
+    "sass": "^1.77.8",
+    "vue": "^3.4.33",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.7",
+    "@types/node": "^20.14.12",
+    "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.10",
+    "@typescript-eslint/parser": "^8.0.0-alpha.10",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "eslint": "^9.7.0",
+    "eslint-plugin-vue": "^9.27.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.4",
+    "vue-tsc": "^2.0.28"
+  }
+}
