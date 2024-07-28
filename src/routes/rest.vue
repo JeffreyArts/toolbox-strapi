@@ -7,7 +7,7 @@
         <hr>
         <section class="viewport">
             <div class="viewport-content rest-body" ratio="4x3" >
-                <h3>Body</h3>
+                <h3>Body <span v-if="status">{{ requestPath }}</span></h3>
                 <pre>{{ body }}</pre>
             </div>
             <br>
@@ -36,10 +36,10 @@
                         </select>
                     </div>
 
-                    <!-- <div class="option">
+                    <div class="option" :class="(options.restMethod === 'POST' || options.restMethod === 'PUT') ? '' : '__isHidden'">
                         <label for="name">Body</label>
                         <div id="requestBody"></div>
-                    </div> -->
+                    </div> 
 
                     <div class="option">
                         <label>Include Authentication Code</label>
@@ -53,16 +53,15 @@
                             Yes
                         </label>
 
-                        <i class="info" v-if="!authToken"><span class="info-icon">?</span><span class="info-details">No authToken found in localStorage</span></i>
+                        <i class="info" v-if="!authToken"><span class="info-icon">?</span><span class="info-details">No `authToken` found in localStorage</span></i>
                     </div>
                     <div class="option">
                         <small>
                             Run the following command in the terminal to list all possible endpoints in your Strapi application <code>yarn strapi routes:list</code>
                         </small>
                     </div>
-                    <form class="option" @submit="submitRequest">
-                        <label for="submit-request">Submit request</label>
-                        <button class="button" id="submit-request">Submit</button>
+                    <form class="option __isSubmit" @submit="submitRequest">
+                        <button class="button" id="submit-request">Submit request</button>
                     </form>
                 </div>
             </div>
@@ -76,12 +75,14 @@ import { defineComponent } from "vue"
 import { AxiosResponseHeaders } from "axios"
 import _, { upperCase } from "lodash"
 import StrapiStore  from "@/store/strapi"
+import { JSONEditor, Content, Mode, TextContent } from "vanilla-jsoneditor"
 
 interface Options {
     headers: AxiosResponseHeaders
     restPath: string
     includeAuthToken: boolean
     restMethod: "GET" | "PUT" | "POST" | "DELETE"
+    body: string
 }
 
 export default defineComponent ({ 
@@ -96,6 +97,7 @@ export default defineComponent ({
         return {
             strapiUrl: "",
             body: "",
+            requestPath: "",
             authToken: "" as string || null,
             status: 0,
             statusText: "",
@@ -104,6 +106,7 @@ export default defineComponent ({
             options: {
                 restPath: "/",
                 restMethod: "GET",
+                body: "",
                 includeAuthToken: true,
             } as Partial<Options>,
             ignoreOptionsUpdate: true,
@@ -142,12 +145,37 @@ export default defineComponent ({
         // this.strapiUrl = this.Strapi.baseUrl
         this.authToken = localStorage.getItem("authToken")
         this.loadOptions()
+        this.addJSONEditor()
     },
     unmounted() {
         //
     },
     methods: {
         upperCase: upperCase,
+        addJSONEditor() {
+            const target = document.getElementById("requestBody")
+            if (!target) {
+                return
+            }
+
+            const editor = new JSONEditor({
+                target,
+                props: {
+                    mainMenuBar: false,
+                    statusBar: false,
+                    mode: "text" as Mode,
+                    content: {
+                        // text: ""
+                        text: this.options.body
+                    } as Content,
+                    onChange: (updatedContent: Content) => {
+                        if (updatedContent.hasOwnProperty('text')) {
+                            this.options.body = (updatedContent as TextContent).text;
+                        }
+                    }
+                }
+            })
+        },
         loadOptions() {
             this.ignoreOptionsUpdate = true
             const optionsString = localStorage.getItem("options")
@@ -166,18 +194,36 @@ export default defineComponent ({
         },
         submitRequest(e:Event) {
             e.preventDefault()
+            this.requestPath = ""
             const path = this.options.restPath || "/"
+            let tmpSelf = undefined
+
+            if (!this.options.includeAuthToken && this.Strapi.auth) {
+                tmpSelf = this.Strapi.auth.self
+                this.Strapi.auth.self = undefined
+            }
+            
             if (this.options.restMethod) {
-                this.Strapi.REST(this.options.restMethod, path).then((response) => {
+                this.Strapi.REST(this.options.restMethod, path, this.options.body).then((response) => {
                     this.body = response.data
                     this.headers = response.headers
                     this.status = response.status
                     this.statusText = response.statusText
+                    this.requestPath = this.Strapi.baseUrl + this.options.restPath
+
+                    if (tmpSelf && this.Strapi.auth) {
+                        this.Strapi.auth.self = tmpSelf
+                    }
                 }).catch(err => {
                     this.body = err.response.data
                     this.headers = err.response.headers
                     this.status = err.response.status
                     this.statusText = err.response.statusText
+                    this.requestPath = this.Strapi.baseUrl + this.options.restPath
+                    
+                    if (tmpSelf && this.Strapi.auth) {
+                        this.Strapi.auth.self = tmpSelf
+                    }
                 })
             }
         }
@@ -187,4 +233,9 @@ export default defineComponent ({
 
 
 <style lang="scss" scoped>
+.option.__isHidden {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+}
 </style>

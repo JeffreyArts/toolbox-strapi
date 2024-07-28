@@ -1,3 +1,4 @@
+import Authorization from "./authorization.vue"
 import Home from "./home.vue"
 import OptionsOverview from "./options-overview.vue"
 import Rest from "./rest.vue"
@@ -8,6 +9,11 @@ const routes = [
         path: "/",
         name: "Home",
         component: Home
+    },
+    {
+        path: "/authorization",
+        name: "Authorization",
+        component: Authorization
     },
     {
         path: "/options-overview",

@@ -1,41 +1,15 @@
 import { jwtDecode } from "jwt-decode"
-import axios, { AxiosError } from "axios"
+import axios, { AxiosError, AxiosResponse } from "axios"
+import UserModel from "./user"
 import Strapi from "@/service/strapi"
+import _ from "lodash"
 
 export interface AuthModel {
+    self: UserModel | undefined
     baseUrl: string
     refreshTimeout: number |  NodeJS.Timeout
     refreshToken: string
     authToken: string
-}
-
-class AuthenticationError extends Error {
-    constructor(type: string, message?: string) {
-        if (typeof type != "string") {
-            return
-        }
-
-        const errorMessages = {
-            missing_credentials: "Please enter your username and password",
-            missing_username: "Please enter your username",
-            missing_password: "Please enter your password",
-            invalid_credentials: "Invalid username or password",
-            blocked:  "Your account has been blocked, please contact an administrator",
-            not_confirmed: "To complete your registration, please confirm your account via the e-mail we have send you",
-            unknown: "Unknown server error, please try again later"
-        }
-
-        if (!message && typeof errorMessages[type as keyof typeof errorMessages] === "string") {
-            message = errorMessages[type as keyof typeof errorMessages]
-        }
-        
-        super(type)
-        this.name = type
-
-        if (message) {
-            this.message = message
-        }
-    }
 }
 
 export class AuthModel {
@@ -45,6 +19,10 @@ export class AuthModel {
         this.refreshTimeout = 0
         this.refreshToken = localStorage.getItem("refreshToken") || ""
         this.authToken = localStorage.getItem("authToken") || ""
+
+        if (localStorage.getItem("self")) {
+            this.self = new UserModel({self: true})
+        }
     }
     
     validateAuthToken(token:string) : boolean {
@@ -63,6 +41,10 @@ export class AuthModel {
         }
         return false
     }
+
+    decodeJWT(token:string) : any {
+        return jwtDecode(token)
+    }
     
     autoRefreshToken(delay: number) {
         this.refreshTimeout = setTimeout(this.requestAuthToken, delay)
@@ -76,52 +58,43 @@ export class AuthModel {
         // Strapi.GET("")
     }
     
-    authenticate(options: {identifier:string, password: string}) {
-        let error = {} as AuthenticationError
+    authenticate(options: {identifier:string, password: string}) : Promise<AxiosResponse<any, any>> {
         
         return new Promise(async (resolve, reject) => {
             try {
                 const credentials = { identifier: options.identifier, password: options.password }
                 const response = await axios.post(`${this.baseUrl}/auth/local`, credentials)                
-                if (!response.data) {
-                    throw new AuthenticationError("unknown", "Missing response data")
-                }
                 
-                if (!response.data.user.confirmed) {
-                    throw new AuthenticationError("not_confirmed")
+                if (response.data) {
+                    localStorage.setItem("self", JSON.stringify(_.pick(response.data.user, ["id", "username", "email"])))
+                    localStorage.setItem("authToken", response.data.jwt)
+                    
+                    this.self = new UserModel({
+                        id: response.data.user.id,
+                        username: response.data.user.username,
+                        email:response.data.user.email,
+                        self: true
+                    })
+                    return resolve(response)
                 }
-                
-                if (response.data.user.blocked) {
-                    throw new AuthenticationError("blocked")
-                }
-                
-                localStorage.setItem("authToken", response.data.jwt)
-                resolve(response.data)
+
+                reject(response)
+                // localStorage.setItem("authToken", response.data.jwt)
                 
             } catch (err) {
                 
                 if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
-                    const serverError = err.response.data.error
-                    
-                    if (serverError.details && serverError.details.errors && serverError.details.errors.length === 2) {
-                        error = new AuthenticationError("missing_credentials")
-                    } else if (serverError.details && serverError.details.errors && serverError.details.errors.length === 1) {
-                        if (serverError.details.errors[0].message.includes("password")) {
-                            error = new AuthenticationError("missing_password")
-                        } else {
-                            error = new AuthenticationError("missing_username")
-                        }
-                    } else {
-                        error = new AuthenticationError("invalid_credentials")
-                    }
+                    // const serverError = err.response.data.error
+                    return reject(err)
                 }
-                reject(error)
+
+                reject(err)
             }
         })
         
     }
 
-    register(options: {username?:string, email: string, password:string}){
+    register(options: {username:string, email: string, password:string}) : Promise<AxiosResponse<any, any>> {
         if (!options) {
             throw new Error("Missing options parameter")
         }
@@ -136,46 +109,32 @@ export class AuthModel {
             try {
                 const request = {
                     email: options.email,
-                    password: options.password
-                } as {email: string, password: string, username?:string}
-
-                if (options.username) {
-                    request.username = options.username
+                    password: options.password,
+                    username: options.username
                 }
 
                 const response = await Strapi.POST(`${this.baseUrl}/auth/local/register`, request)
-
-                if (!response.data) {
-                    throw new AuthenticationError("unknown", "Missing response data")
-                }
                 
-                // You can remove this check if you want the user to automatically login after registration
-                if (!response.data.user.confirmed) {
-                    throw new AuthenticationError("not_confirmed")
-                }
-                
+                localStorage.setItem("self", JSON.stringify(_.pick(response.data.user, ["id", "username", "email"])))
                 localStorage.setItem("authToken", response.data.jwt)
-                resolve(response.data)
+
+                this.self = new UserModel({
+                    id: response.data.user.id,
+                    username: response.data.user.username,
+                    email:response.data.user.email,
+                    self: true
+                })
+
+                resolve(response)
 
             } catch (err: unknown | any) {
-
-                if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
-                    const serverError = err.response.data.error
-
-                    if (serverError.details && serverError.details.errors.length >= 1 ) {
-                        for (const err of serverError.details.errors) {
-                            errors.push(err)
-                        }
-                    } else {
-                        errors.push(serverError)
-                    }
-                } else if (err?.name ) {
-                    errors.push(err)
-                } 
-
-                reject(errors)
+                reject(err)
             }
         })
+    }
+
+    logout() {
+        localStorage.removeItem("authToken")
     }
 }
 

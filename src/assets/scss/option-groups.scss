@@ -81,6 +81,12 @@
         text-align: right;
     }
 
+    &.__isHidden {
+        opacity: 0;
+        height: 0;
+        overflow: hidden;
+    }
+
     label,
     .label {
         display: inline-block;
@@ -339,6 +345,26 @@
                 left: calc(50% - 8px);
                 border:8px solid transparent;
                 border-top-color: rgba(0,0,0,.88);
+            }
+        }
+    }
+    
+    table {
+        color: #ccc;
+        font-family: FixedSys;
+        width: 100%;
+        border-spacing: 0;
+        border-bottom: 1px solid currentColor;
+
+        td {
+            border-left: 1px solid currentColor;
+            border-right: 1px solid currentColor;
+            border-top: 1px solid currentColor;
+            padding: 4px;
+
+            &:first-child {
+                min-width: 20%;
+                border-right:0 none transparent;
             }
         }
     }

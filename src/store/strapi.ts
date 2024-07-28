@@ -40,7 +40,6 @@ export const Strapi = defineStore({
     id: "strapi",
     state: () => ({
         baseUrl: "",
-        self: null as UserModel | null,
         auth: undefined as AuthModel | undefined 
     }),
     actions: {
@@ -54,31 +53,9 @@ export const Strapi = defineStore({
             if (url[url.length - 1] === "/") {
                 url = url.slice(0, -1)
             }
-            
-            // if first char is not a slash, add it
-            if (import.meta.env.VITE_STRAPI_REST_ENDPOINT[0] !== "/") {
-                url = `${url}/`
-            } 
-            
-            if (url[url.length - 1] !== "/") {
-                url = url + "/"
-            }
-            
+
             this.baseUrl = url
             this.auth = new AuthModel(this.baseUrl)
-
-            // this.authToken = localStorage.getItem("auth_token")
-            const authToken = localStorage.getItem("auth_token")
-            if (authToken) {
-                if (this.auth.validateAuthToken(authToken)) {
-                    this.GET("/users/me").then((res) => {
-                        this.self = _.pick(res.data, [
-                            "name",
-                            "email"
-                        ])
-                    })
-                }
-            }
         },
         GET(path: string) {
             return this.REST("GET", path)
@@ -100,12 +77,9 @@ export const Strapi = defineStore({
                 "Content-Type": "application/json",
             } as StrapiHTTPHeader
             
-            if (path[0] === "/") {
-                path = path.slice(1)
-            }
             path = this.baseUrl + path
              
-            if (localStorage.getItem("authToken")) {
+            if (this.auth && this.auth.self) {
                 headers["Authorization"] = `Bearer ${localStorage.getItem("authToken")}`
             }
 
@@ -116,6 +90,8 @@ export const Strapi = defineStore({
             
             if (typeof data !== "string" && typeof data !== "undefined") {
                 request.data = JSON.stringify(data, null, 2)
+            } else if (typeof data === "string") {
+                request.data = data
             }
 
             return axios(path, request)
@@ -136,6 +112,7 @@ export const Strapi = defineStore({
             }
     
             return this.auth.register({
+                username: email,
                 email,
                 password
             })
@@ -152,42 +129,43 @@ export const Strapi = defineStore({
 
             return new Promise(async (resolve, reject) => {
                 try {
-                    if (!email) {
-                        throw {
-                            name: "missing_required_fields",
-                            message: errorMessages["missing_required_fields"],
-                            details: "Missing email input"
-                        } as StrapiAuthenticationError
-                    }
+                    return reject(new Error("This feature is not yet implemented"))
+                    // if (!email) {
+                    //     throw {
+                    //         name: "missing_required_fields",
+                    //         message: errorMessages["missing_required_fields"],
+                    //         details: "Missing email input"
+                    //     } as StrapiAuthenticationError
+                    // }
                     
-                    const response = await this.POST("/auth/forgot-password", {
-                        email: email
-                    })
+                    // const response = await this.POST("/auth/forgot-password", {
+                    //     email: email
+                    // })
     
-                    if (!response.data) {
-                        throw {
-                            name: "unknown",
-                            message: errorMessages["unknown"],
-                            details: "Missing response data"
-                        } as StrapiAuthenticationError
-                    }
+                    // if (!response.data) {
+                    //     throw {
+                    //         name: "unknown",
+                    //         message: errorMessages["unknown"],
+                    //         details: "Missing response data"
+                    //     } as StrapiAuthenticationError
+                    // }
     
-                    resolve(response.data)
+                    // resolve(response.data)
     
                 } catch (err: StrapiAuthenticationError | unknown) {
     
-                    if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
-                        const serverError = err.response.data.error
+                    // if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
+                    //     const serverError = err.response.data.error
                         
-                        if (serverError.message) {
-                            for (const err of serverError.details.errors) {
-                                errors.push(err)
-                            }
-                        } else {
-                            errors.push(errorMessages["unknown"])
-                        }
-                    }
-                    reject(errors)
+                    //     if (serverError.message) {
+                    //         for (const err of serverError.details.errors) {
+                    //             errors.push(err)
+                    //         }
+                    //     } else {
+                    //         errors.push(errorMessages["unknown"])
+                    //     }
+                    // }
+                    reject(err)
                 }
             })
         },
@@ -209,49 +187,44 @@ export const Strapi = defineStore({
                         password: password
                     })
     
+                    reject(new Error("This feature is not yet implemented"))
     
-                    if (!response.data) {
-                        throw {
-                            type: "unknown",
-                            message: errorMessages["unknown"],
-                            details: "Missing response data"
-                        }
-                    }
+                    // if (!response.data) {
+                    //     throw {
+                    //         type: "unknown",
+                    //         message: errorMessages["unknown"],
+                    //         details: "Missing response data"
+                    //     }
+                    // }
     
-                    if (error && error.type) {
-                        throw error
-                    }
+                    // if (error && error.type) {
+                    //     throw error
+                    // }
     
-                    this._saveUserData(response)
-                    resolve(response.data)
+                    // this._saveUserData(response)
+                    // resolve(response.data)
     
                 } catch (err) {
     
-                    if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
-                        const serverError = err.response.data.error
+                    // if (err instanceof AxiosError && err.response && err.response.data && err.response.data.error) {
+                    //     const serverError = err.response.data.error
                         
-                        if (serverError.message.toLowerCase().includes("incorrect code")) {
-                            error = {
-                                type: "incorrect_code",
-                                message: errorMessages["incorrect_code"],
-                            }
-                        } else {
-                            error = {
-                                type: "unknown",
-                                message: errorMessages["unknown"]
-                            }
-                        }
-                    }
+                    //     if (serverError.message.toLowerCase().includes("incorrect code")) {
+                    //         error = {
+                    //             type: "incorrect_code",
+                    //             message: errorMessages["incorrect_code"],
+                    //         }
+                    //     } else {
+                    //         error = {
+                    //             type: "unknown",
+                    //             message: errorMessages["unknown"]
+                    //         }
+                    //     }
+                    // }
                     reject(error)
                 }
             })
         },
-        logout() {
-            this.self = undefined
-            this.authToken = null
-            
-            localStorage.removeItem("auth_token")
-        }
     },
     getters: {
     }

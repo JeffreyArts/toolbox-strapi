@@ -85,6 +85,13 @@ h1 {
     line-height: 32px;
 }
 
+a {
+    color: #09f;
+    &:visited {
+        color: #f09;
+    }
+}
+
 * {
     box-sizing: border-box
 }

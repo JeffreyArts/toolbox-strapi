@@ -209,6 +209,9 @@ export default defineComponent ({
     font-weight: bold;
     color: #fff;
     text-decoration: none;
+    &:visited {
+        color: #fff;
+    }
 }
 
 .site-menu-list {

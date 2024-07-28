@@ -1,7 +1,5 @@
 .rest-header,
 .rest-body{
-    overflow-y: auto;
-
     h3 {
         display: inline-block;
         color: #fff;
@@ -34,4 +32,9 @@
 }
 .rest-header h3 {
     background-color: rgb(47, 46, 139)
+}
+.rest-content {
+    overflow-y: auto;
+    max-height: 100%;
+
 }
