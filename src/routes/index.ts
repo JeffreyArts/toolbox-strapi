@@ -1,6 +1,7 @@
 import Authorization from "./authorization.vue"
 import Home from "./home.vue"
 import OptionsOverview from "./options-overview.vue"
+import PasswordReset from "./password-reset.vue"
 import Rest from "./rest.vue"
 import { createWebHistory, createRouter } from "vue-router"
 
@@ -19,6 +20,11 @@ const routes = [
         path: "/options-overview",
         name: "Options overview",
         component: OptionsOverview
+    },
+    {
+        path: "/password-reset",
+        name: "Password reset",
+        component: PasswordReset
     },
     {
         path: "/rest",

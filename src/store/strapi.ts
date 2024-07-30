@@ -1,7 +1,6 @@
 import { defineStore } from "pinia"
 import UserModel from "@/model/strapi/user"
 import AuthModel from "@/model/strapi/auth"
-import StrapiService from "@/service/strapi"
 import { AxiosRequestConfig, AxiosResponse,AxiosError } from "axios"
 import axios from "axios"
 import _ from "lodash"

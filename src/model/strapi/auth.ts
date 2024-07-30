@@ -93,18 +93,12 @@ export class AuthModel {
         })
         
     }
-
+    
     register(options: {username:string, email: string, password:string}) : Promise<AxiosResponse<any, any>> {
         if (!options) {
             throw new Error("Missing options parameter")
         }
-        const errorMessages = {
-            not_confirmed: "To complete your registration, please confirm your account via the e-mail we have send you to the provided e-mailaddress",
-            unknown: "Unknown server error, please try again later"
-        }
-
-        const errors = [] as Array<string>
-
+                
         return new Promise(async (resolve, reject) => {
             try {
                 const request = {
@@ -112,27 +106,83 @@ export class AuthModel {
                     password: options.password,
                     username: options.username
                 }
-
+                
                 const response = await Strapi.POST(`${this.baseUrl}/auth/local/register`, request)
                 
                 localStorage.setItem("self", JSON.stringify(_.pick(response.data.user, ["id", "username", "email"])))
                 localStorage.setItem("authToken", response.data.jwt)
-
+                
                 this.self = new UserModel({
                     id: response.data.user.id,
                     username: response.data.user.username,
                     email:response.data.user.email,
                     self: true
                 })
-
+                
                 resolve(response)
-
+                
             } catch (err: unknown | any) {
                 reject(err)
             }
         })
     }
 
+    forgotPassword(options: {email?:string, username?: string}) : Promise<AxiosResponse<any, any>> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const credentials =  { 
+                } as { email?:string, username?:string }
+
+                if (options.email) {
+                    credentials.email = options.email
+                } else if (options.username) {
+                    credentials.username = options.username
+                }
+                
+                const response = await axios.post(`${this.baseUrl}/auth/forgot-password`, credentials)                
+                
+                if (response.data) {
+                    return resolve(response)
+                }
+
+                reject(response)
+            } catch (err) {
+                if (err instanceof AxiosError && err.response) {
+                    // const serverError = err.response.data.error
+                    return reject(err)
+                }
+                reject(err)
+            }
+        })
+    }
+
+    resetPassword(options: {paswordForgotCode:string, newPassword: string}) : Promise<AxiosResponse<any, any>> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const requestBody =  { 
+                    code: options.paswordForgotCode,
+                    password: options.newPassword,
+                    passwordConfirmation: options.newPassword
+                }
+
+                
+                const response = await axios.post(`${this.baseUrl}/auth/reset-password`, requestBody)
+                
+                if (response.data) {
+                    return resolve(response)
+                }
+
+                reject(response)
+            } catch (err) {
+                if (err instanceof AxiosError && err.response) {
+                    // const serverError = err.response.data.error
+                    return reject(err)
+                }
+                reject(err)
+            }
+        })
+    }
+    
     logout() {
         localStorage.removeItem("authToken")
     }
