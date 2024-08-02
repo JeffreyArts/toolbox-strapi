@@ -30,8 +30,9 @@
 
 
 <script lang="ts">
-import {defineComponent} from "vue"
+import { defineComponent } from "vue"
 import _ from "lodash"
+import StrapiStore  from "@/store/strapi"
 
 interface Options {
     test: string
@@ -40,6 +41,11 @@ interface Options {
 export default defineComponent ({ 
     components: {},
     props: [],
+    setup() {
+        const Strapi = StrapiStore()
+        
+        return { Strapi }
+    },
     data() {
         return {
             options: {
